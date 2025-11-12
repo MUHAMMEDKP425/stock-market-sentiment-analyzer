@@ -3,6 +3,4 @@ pandas
 scikit-learn
 matplotlib
 nltk
-transformers
-torch
-scipy
+joblib
