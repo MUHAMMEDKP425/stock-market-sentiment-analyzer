@@ -42,12 +42,15 @@ def clean_text(text):
 
 # --- FINBERT ANALYSIS FUNCTION ---
 def finbert_sentiment(text):
+    import matplotlib.pyplot as plt
+
+    # Run FinBERT
     inputs = tokenizer(text, return_tensors="pt", truncation=True, padding=True)
     outputs = finbert_model(**inputs)
     scores = softmax(outputs.logits.detach().numpy()[0])
     labels = ['negative', 'neutral', 'positive']
     
-    # Get results
+    # Store scores
     results = {labels[i]: float(scores[i]) for i in range(len(labels))}
     sentiment = max(results, key=results.get)
     confidence = results[sentiment] * 100
@@ -55,14 +58,42 @@ def finbert_sentiment(text):
     # --- Keyword correction ---
     text_lower = text.lower()
     positive_keywords = [
-        "profit", "profits", "gain", "rise", "growth", "up", "increase", "jump", 
-        "record profit", "record profits", "strong", "beat", "surged", "higher", 
+        "profit", "profits", "gain", "rise", "growth", "up", "increase", "jump",
+        "record profit", "record profits", "strong", "beat", "surged", "higher",
         "improved", "good", "positive", "bullish"
     ]
     negative_keywords = [
-        "loss", "drop", "fall", "decline", "down", "weak", "miss", 
+        "loss", "drop", "fall", "decline", "down", "weak", "miss",
         "cut", "slump", "negative", "bearish", "bad", "decrease"
     ]
+
+    # Correction if confidence low or neutral
+    if sentiment == "neutral" or confidence < 60:
+        if any(word in text_lower for word in positive_keywords):
+            sentiment = "positive"
+            confidence = 90
+        elif any(word in text_lower for word in negative_keywords):
+            sentiment = "negative"
+            confidence = 90
+
+    # Context-based override
+    if any(phrase in text_lower for phrase in ["record profit", "record profits", "strong results", "beat expectations"]):
+        sentiment = "positive"
+        confidence = 95
+
+    # --- Display numeric confidence ---
+    st.write(f"**Confidence scores:** {results}")
+
+    # --- Plot confidence bar chart ---
+    fig, ax = plt.subplots()
+    colors = ["red", "gray", "green"]
+    ax.bar(results.keys(), results.values(), color=colors)
+    ax.set_title("FinBERT Confidence Scores")
+    ax.set_ylabel("Probability")
+    st.pyplot(fig)
+
+    return sentiment, confidence
+
 
     # 1️⃣ Fix low-confidence or neutral cases
     if sentiment == "neutral" or confidence < 60:
