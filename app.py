@@ -46,13 +46,15 @@ def finbert_sentiment(text):
     inputs = tokenizer(text, return_tensors="pt", truncation=True, padding=True)
     outputs = finbert_model(**inputs)
     scores = softmax(outputs.logits.detach().numpy()[0])
-    labels = ['negative', 'neutral', 'positive']
+
+    # ✅ Corrected label order for ProsusAI/finbert
+    labels = ['positive', 'negative', 'neutral']
 
     results = {labels[i]: float(scores[i]) for i in range(len(labels))}
     sentiment = max(results, key=results.get)
     confidence = results[sentiment] * 100
 
-    # Keyword correction
+    # --- Keyword correction ---
     text_lower = text.lower()
     positive_keywords = [
         "profit", "profits", "gain", "rise", "growth", "up", "increase", "jump",
@@ -64,6 +66,7 @@ def finbert_sentiment(text):
         "cut", "slump", "negative", "bearish", "bad", "decrease"
     ]
 
+    # Optional correction if model confidence is low
     if sentiment == "neutral" or confidence < 60:
         if any(word in text_lower for word in positive_keywords):
             sentiment, confidence = "positive", 90
@@ -77,12 +80,19 @@ def finbert_sentiment(text):
     st.markdown("### 🔍 Confidence Scores")
     st.json(results)
 
-    # --- Plot FinBERT Confidence Chart ONLY ---
+    # --- Plot FinBERT Confidence Chart (Corrected Order) ---
     fig, ax = plt.subplots()
-    colors = ["red", "gray", "green"]
+    colors = ["green", "red", "gray"]  # positive, negative, neutral
     ax.bar(results.keys(), results.values(), color=colors)
     ax.set_title("FinBERT Confidence Scores", fontsize=12)
     ax.set_ylabel("Probability", fontsize=10)
+
+    # Highlight predicted sentiment bar
+    for i, label in enumerate(results.keys()):
+        if label == sentiment:
+            ax.patches[i].set_edgecolor("black")
+            ax.patches[i].set_linewidth(3)
+
     st.pyplot(fig, clear_figure=True)
 
     return sentiment, confidence
