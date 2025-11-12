@@ -83,7 +83,17 @@ def finbert_sentiment(text):
         confidence = 95
 
     # --- Display confidence data ---
-    st.write(f"**Confiden**
+    st.write(f"**Confidence scores:** {results}")
+
+    # --- Plot confidence chart (only one chart per run) ---
+    fig, ax = plt.subplots()
+    colors = ["red", "gray", "green"]
+    ax.bar(results.keys(), results.values(), color=colors)
+    ax.set_title("FinBERT Confidence Scores", fontsize=12)
+    ax.set_ylabel("Probability", fontsize=10)
+    st.pyplot(fig, clear_figure=True)
+
+    return sentiment, confidence
 
 
 # =============================
@@ -115,8 +125,7 @@ if st.button("Analyze Sentiment (AI FinBERT) 🤖"):
     else:
         st.warning("Please type something before analyzing.")
 
-
-# --- Chart (optional) ---
+# --- Chart (optional example) ---
 st.subheader("📊 Example Sentiment Distribution")
 sample_data = pd.DataFrame({
     'label': ['positive', 'negative', 'neutral'],
