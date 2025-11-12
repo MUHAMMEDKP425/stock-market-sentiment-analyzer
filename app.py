@@ -42,9 +42,7 @@ def clean_text(text):
 
 # --- FINBERT ANALYSIS FUNCTION ---
 def finbert_sentiment(text):
-    import matplotlib.pyplot as plt
-
-    # Clear previous plots
+    # Clear old plots
     plt.clf()
 
     # Run FinBERT
@@ -52,7 +50,7 @@ def finbert_sentiment(text):
     outputs = finbert_model(**inputs)
     scores = softmax(outputs.logits.detach().numpy()[0])
     labels = ['negative', 'neutral', 'positive']
-    
+
     # Store scores
     results = {labels[i]: float(scores[i]) for i in range(len(labels))}
     sentiment = max(results, key=results.get)
@@ -70,6 +68,7 @@ def finbert_sentiment(text):
         "cut", "slump", "negative", "bearish", "bad", "decrease"
     ]
 
+    # Adjust sentiment if confidence is low or neutral
     if sentiment == "neutral" or confidence < 60:
         if any(word in text_lower for word in positive_keywords):
             sentiment = "positive"
@@ -78,14 +77,16 @@ def finbert_sentiment(text):
             sentiment = "negative"
             confidence = 90
 
+    # Contextual override for clear signals
     if any(phrase in text_lower for phrase in ["record profit", "record profits", "strong results", "beat expectations"]):
         sentiment = "positive"
         confidence = 95
 
     # --- Display confidence data ---
-    st.write(f"**Confidence scores:** {results}")
+    st.markdown("### 🔍 Confidence Scores")
+    st.json(results)
 
-    # --- Plot confidence chart (only one chart per run) ---
+    # --- Plot confidence chart ---
     fig, ax = plt.subplots()
     colors = ["red", "gray", "green"]
     ax.bar(results.keys(), results.values(), color=colors)
@@ -100,33 +101,41 @@ def finbert_sentiment(text):
 # 🌐 STREAMLIT APP UI
 # =============================
 st.title("📈 Stock Market Sentiment Analyzer")
-st.markdown("Analyze the sentiment of financial news, tweets, or stock updates using both Logistic Regression and FinBERT AI.")
+st.markdown("Analyze the sentiment of **financial news, tweets, or stock updates** using both **Trained Model (ML)** and **FinBERT AI**.")
 
 st.subheader("💬 Enter a financial sentence:")
 user_input = st.text_area("Type a financial sentence below:", "")
 
-# --- Logistic Regression Prediction ---
-if st.button("Analyze Sentiment (Trained Model)"):
-    if user_input.strip():
-        cleaned = clean_text(user_input)
-        vector = tfidf.transform([cleaned])
-        prediction = model.predict(vector)[0]
-        color = "green" if prediction == "positive" else "red" if prediction == "negative" else "gray"
-        st.markdown(f"<h3 style='color:{color}'>Predicted Sentiment (Trained): {prediction.upper()} 🎯</h3>", unsafe_allow_html=True)
-    else:
-        st.warning("Please type something before analyzing.")
+# --- Layout: Two columns ---
+col1, col2 = st.columns(2)
 
-# --- FinBERT AI Prediction ---
-if st.button("Analyze Sentiment (AI FinBERT) 🤖"):
-    if user_input.strip():
-        sentiment, confidence = finbert_sentiment(user_input)
-        color = "green" if sentiment == "positive" else "red" if sentiment == "negative" else "gray"
-        st.markdown(f"<h3 style='color:{color}'>AI Prediction (FinBERT): {sentiment.upper()} 🤖 ({confidence:.1f}% sure)</h3>", unsafe_allow_html=True)
-    else:
-        st.warning("Please type something before analyzing.")
+# --- Left: Logistic Regression Model ---
+with col1:
+    st.markdown("### 🧠 Trained Model")
+    if st.button("Analyze (Trained Model)", key="trained_model"):
+        if user_input.strip():
+            cleaned = clean_text(user_input)
+            vector = tfidf.transform([cleaned])
+            prediction = model.predict(vector)[0]
+            color = "green" if prediction == "positive" else "red" if prediction == "negative" else "gray"
+            st.markdown(f"<h4 style='color:{color}'>Predicted: {prediction.upper()} 🎯</h4>", unsafe_allow_html=True)
+        else:
+            st.warning("Please type something before analyzing.")
 
-# --- Chart (optional example) ---
-st.subheader("📊 Example Sentiment Distribution")
+# --- Right: FinBERT Model ---
+with col2:
+    st.markdown("### 🤖 FinBERT AI")
+    if st.button("Analyze (AI FinBERT)", key="ai_model"):
+        if user_input.strip():
+            sentiment, confidence = finbert_sentiment(user_input)
+            color = "green" if sentiment == "positive" else "red" if sentiment == "negative" else "gray"
+            st.markdown(f"<h4 style='color:{color}'>AI Prediction: {sentiment.upper()} 🤖 ({confidence:.1f}% sure)</h4>", unsafe_allow_html=True)
+        else:
+            st.warning("Please type something before analyzing.")
+
+# --- Example Chart (Static Sample) ---
+st.markdown("---")
+st.subheader("📊 Example Financial Sentiment Distribution")
 sample_data = pd.DataFrame({
     'label': ['positive', 'negative', 'neutral'],
     'count': [45, 35, 20]
