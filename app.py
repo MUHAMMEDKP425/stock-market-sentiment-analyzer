@@ -1,5 +1,5 @@
 # =============================
-# 📈 STOCK MARKET SENTIMENT ANALYZER (Offline FinBERT Version)
+# 📈 STOCK MARKET SENTIMENT ANALYZER (Trained on FinancialPhraseBank)
 # =============================
 
 import streamlit as st
@@ -7,25 +7,18 @@ import pandas as pd
 import re
 import nltk
 from nltk.corpus import stopwords
-from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.linear_model import LogisticRegression
 import matplotlib.pyplot as plt
-from transformers import AutoTokenizer, AutoModelForSequenceClassification
-from scipy.special import softmax
-import torch
+import joblib
 
 # --- SETUP ---
 nltk.download('stopwords')
 stop_words = set(stopwords.words('english'))
 
-# --- LOAD FINBERT MODEL (No API Needed) ---
-@st.cache_resource
-def load_finbert():
-    tokenizer = AutoTokenizer.from_pretrained("ProsusAI/finbert")
-    model = AutoModelForSequenceClassification.from_pretrained("ProsusAI/finbert")
-    return tokenizer, model
-
-tokenizer, finbert_model = load_finbert()
+# --- LOAD TRAINED MODEL AND VECTORIZER ---
+st.write("Loading trained sentiment model... ⏳")
+tfidf = joblib.load("tfidf_vectorizer.pkl")
+model = joblib.load("sentiment_model.pkl")
+st.write("✅ Model loaded successfully!")
 
 # --- CLEANING FUNCTION ---
 def clean_text(text):
@@ -35,43 +28,16 @@ def clean_text(text):
     words = [w for w in words if w not in stop_words]
     return ' '.join(words)
 
-# --- FINBERT SENTIMENT FUNCTION ---
-def ai_sentiment_analysis(text):
-    inputs = tokenizer(text, return_tensors="pt", truncation=True, padding=True)
-    outputs = finbert_model(**inputs)
-    scores = softmax(outputs.logits.detach().numpy()[0])
-    labels = ['negative', 'neutral', 'positive']
-    sentiment = labels[scores.argmax()]
-    return sentiment
-
 # =============================
-# 🌐 STREAMLIT APP
+# 🌐 STREAMLIT APP UI
 # =============================
 st.title("📈 Stock Market Sentiment Analyzer")
-st.markdown("Analyze the sentiment of financial news, tweets, or stock updates.")
+st.markdown("Analyze the sentiment of financial news, tweets, or stock updates using a model trained on real financial data.")
 
-st.subheader("💬 Enter text for sentiment prediction:")
-user_input = st.text_area("Type a financial sentence...", "")
+st.subheader("💬 Enter a financial sentence:")
+user_input = st.text_area("Type a financial sentence below:", "")
 
-# --- Dummy training example (for ML baseline) ---
-sample_data = pd.DataFrame({
-    'tweet': [
-        'Stock prices are rising steadily.',
-        'Market crash is worrying investors.',
-        'Investors are waiting for news updates.'
-    ],
-    'label': ['positive', 'negative', 'neutral']
-})
-sample_data['clean_text'] = sample_data['tweet'].apply(clean_text)
-
-tfidf = TfidfVectorizer(max_features=5000)
-X = tfidf.fit_transform(sample_data['clean_text'])
-y = sample_data['label']
-
-model = LogisticRegression(max_iter=200)
-model.fit(X, y)
-
-# --- NORMAL (ML) SENTIMENT BUTTON ---
+# --- NORMAL (TRAINED MODEL) SENTIMENT BUTTON ---
 if st.button("Analyze Sentiment"):
     if user_input.strip():
         cleaned = clean_text(user_input)
@@ -82,21 +48,17 @@ if st.button("Analyze Sentiment"):
     else:
         st.warning("Please type something before analyzing.")
 
-# --- AI (FINBERT) SENTIMENT BUTTON ---
-if st.button("Analyze Sentiment (AI) 🤖"):
-    if user_input.strip():
-        sentiment = ai_sentiment_analysis(user_input)
-        color = "green" if sentiment == "positive" else "red" if sentiment == "negative" else "gray"
-        st.markdown(f"<h3 style='color:{color}'>AI Prediction: {sentiment.upper()} 🤖</h3>", unsafe_allow_html=True)
-    else:
-        st.warning("Please type something before analyzing.")
-
-# --- CHART (optional) ---
-st.subheader("📊 Sample Sentiment Distribution")
+# --- OPTIONAL CHART ---
+st.subheader("📊 Example Sentiment Distribution")
+sample_data = pd.DataFrame({
+    'label': ['positive', 'negative', 'neutral'],
+    'count': [45, 35, 20]
+})
 fig, ax = plt.subplots()
-sample_data['label'].value_counts().plot(kind='bar', ax=ax, color=['green', 'red', 'gray'])
+ax.bar(sample_data['label'], sample_data['count'], color=['green', 'red', 'gray'])
+ax.set_title("Example Financial Sentiment Distribution")
 st.pyplot(fig)
 
 # --- FOOTER ---
 st.markdown("---")
-st.markdown("👨‍💻 Built by **Muhammed KP** — Powered by Streamlit & FinBERT 🚀")
+st.markdown("👨‍💻 Built by **Muhammed KP** — Powered by Streamlit & FinancialPhraseBank Dataset 🚀")
