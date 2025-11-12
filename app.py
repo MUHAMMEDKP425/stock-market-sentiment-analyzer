@@ -51,6 +51,36 @@ def finbert_sentiment(text):
     results = {labels[i]: float(scores[i]) for i in range(len(labels))}
     sentiment = max(results, key=results.get)
     confidence = results[sentiment] * 100
+
+    # --- Keyword correction ---
+    text_lower = text.lower()
+    positive_keywords = [
+        "profit", "profits", "gain", "rise", "growth", "up", "increase", "jump", 
+        "record profit", "record profits", "strong", "beat", "surged", "higher", 
+        "improved", "good", "positive", "bullish"
+    ]
+    negative_keywords = [
+        "loss", "drop", "fall", "decline", "down", "weak", "miss", 
+        "cut", "slump", "negative", "bearish", "bad", "decrease"
+    ]
+
+    # 1️⃣ Fix low-confidence or neutral cases
+    if sentiment == "neutral" or confidence < 60:
+        if any(word in text_lower for word in positive_keywords):
+            sentiment = "positive"
+            confidence = 90
+        elif any(word in text_lower for word in negative_keywords):
+            sentiment = "negative"
+            confidence = 90
+
+    # 2️⃣ Contextual override for 'record profits', 'strong results', etc.
+    if any(phrase in text_lower for phrase in ["record profit", "record profits", "strong results", "beat expectations"]):
+        sentiment = "positive"
+        confidence = 95
+
+    st.write(f"**Confidence scores:** {results}")
+    return sentiment, confidence
+
     
     # --- Keyword-based correction ---
     text_lower = text.lower()
