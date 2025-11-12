@@ -46,8 +46,18 @@ def finbert_sentiment(text):
     outputs = finbert_model(**inputs)
     scores = softmax(outputs.logits.detach().numpy()[0])
     labels = ['negative', 'neutral', 'positive']
-    sentiment = labels[scores.argmax()]
-    return sentiment
+    
+    # Store all scores
+    results = {labels[i]: float(scores[i]) for i in range(len(labels))}
+    
+    # Pick the label with highest score
+    sentiment = max(results, key=results.get)
+    confidence = results[sentiment] * 100  # convert to percentage
+    
+    # Display all scores in Streamlit
+    st.write(f"**Confidence scores:** {results}")
+    
+    return sentiment, confidence
 
 # =============================
 # 🌐 STREAMLIT APP UI
@@ -72,11 +82,12 @@ if st.button("Analyze Sentiment (Trained Model)"):
 # --- FinBERT AI Prediction ---
 if st.button("Analyze Sentiment (AI FinBERT) 🤖"):
     if user_input.strip():
-        sentiment = finbert_sentiment(user_input)
+        sentiment, confidence = finbert_sentiment(user_input)
         color = "green" if sentiment == "positive" else "red" if sentiment == "negative" else "gray"
-        st.markdown(f"<h3 style='color:{color}'>AI Prediction (FinBERT): {sentiment.upper()} 🤖</h3>", unsafe_allow_html=True)
+        st.markdown(f"<h3 style='color:{color}'>AI Prediction (FinBERT): {sentiment.upper()} 🤖 ({confidence:.1f}% sure)</h3>", unsafe_allow_html=True)
     else:
         st.warning("Please type something before analyzing.")
+
 
 # --- Chart (optional) ---
 st.subheader("📊 Example Sentiment Distribution")
