@@ -29,14 +29,13 @@ def clean_text(text):
 
 # --- GEMINI AI SENTIMENT FUNCTION ---
 def ai_sentiment_analysis(text):
-    prompt = f"Analyze the sentiment of this financial statement. Reply only with 'positive', 'negative', or 'neutral': {text}"
-    
-    # 👇 This is the correct model connection line
-    model = genai.GenerativeModel("gemini-1.5-flash")
-    
+    prompt = (
+        f"Analyze the sentiment of this financial statement. "
+        f"Reply only with 'positive', 'negative', or 'neutral': {text}"
+    )
+    model = genai.GenerativeModel("gemini-1.5-flash-latest")
     response = model.generate_content(prompt)
-    sentiment = response.text.strip().lower()
-    return sentiment
+    return response.text.strip().lower()
 
 
 # =============================
