@@ -44,6 +44,9 @@ def clean_text(text):
 def finbert_sentiment(text):
     import matplotlib.pyplot as plt
 
+    # Clear previous plots
+    plt.clf()
+
     # Run FinBERT
     inputs = tokenizer(text, return_tensors="pt", truncation=True, padding=True)
     outputs = finbert_model(**inputs)
@@ -67,7 +70,6 @@ def finbert_sentiment(text):
         "cut", "slump", "negative", "bearish", "bad", "decrease"
     ]
 
-    # Correction if confidence low or neutral
     if sentiment == "neutral" or confidence < 60:
         if any(word in text_lower for word in positive_keywords):
             sentiment = "positive"
@@ -76,59 +78,12 @@ def finbert_sentiment(text):
             sentiment = "negative"
             confidence = 90
 
-    # Context-based override
     if any(phrase in text_lower for phrase in ["record profit", "record profits", "strong results", "beat expectations"]):
         sentiment = "positive"
         confidence = 95
 
-    # --- Display numeric confidence ---
-    st.write(f"**Confidence scores:** {results}")
-
-    # --- Plot confidence bar chart ---
-    fig, ax = plt.subplots()
-    colors = ["red", "gray", "green"]
-    ax.bar(results.keys(), results.values(), color=colors)
-    ax.set_title("FinBERT Confidence Scores")
-    ax.set_ylabel("Probability")
-    st.pyplot(fig)
-
-    return sentiment, confidence
-
-
-    # 1️⃣ Fix low-confidence or neutral cases
-    if sentiment == "neutral" or confidence < 60:
-        if any(word in text_lower for word in positive_keywords):
-            sentiment = "positive"
-            confidence = 90
-        elif any(word in text_lower for word in negative_keywords):
-            sentiment = "negative"
-            confidence = 90
-
-    # 2️⃣ Contextual override for 'record profits', 'strong results', etc.
-    if any(phrase in text_lower for phrase in ["record profit", "record profits", "strong results", "beat expectations"]):
-        sentiment = "positive"
-        confidence = 95
-
-    st.write(f"**Confidence scores:** {results}")
-    return sentiment, confidence
-
-    
-    # --- Keyword-based correction ---
-    text_lower = text.lower()
-    positive_keywords = ["profit", "gain", "rise", "growth", "up", "increase", "jump", "record profits", "strong", "beat"]
-    negative_keywords = ["loss", "drop", "fall", "decline", "down", "weak", "miss", "cut", "slump"]
-    
-    # If FinBERT says 'neutral' or confidence is low, use keyword correction
-    if sentiment == "neutral" or confidence < 60:
-        if any(word in text_lower for word in positive_keywords):
-            sentiment = "positive"
-            confidence = 90
-        elif any(word in text_lower for word in negative_keywords):
-            sentiment = "negative"
-            confidence = 90
-
-    st.write(f"**Confidence scores:** {results}")
-    return sentiment, confidence
+    # --- Display confidence data ---
+    st.write(f"**Confiden**
 
 
 # =============================
