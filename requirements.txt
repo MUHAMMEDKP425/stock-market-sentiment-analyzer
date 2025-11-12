@@ -1,6 +1,10 @@
+transformers
+torch
+scipy
 streamlit
 pandas
 scikit-learn
 matplotlib
 nltk
 joblib
+
