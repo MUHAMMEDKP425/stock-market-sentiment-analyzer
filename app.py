@@ -1,5 +1,5 @@
 # =============================
-# 📈 STOCK MARKET SENTIMENT ANALYZER (with Gemini AI)
+# 📈 STOCK MARKET SENTIMENT ANALYZER (Offline FinBERT Version)
 # =============================
 
 import streamlit as st
@@ -10,14 +10,22 @@ from nltk.corpus import stopwords
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.linear_model import LogisticRegression
 import matplotlib.pyplot as plt
-import google.generativeai as genai
+from transformers import AutoTokenizer, AutoModelForSequenceClassification
+from scipy.special import softmax
+import torch
 
 # --- SETUP ---
 nltk.download('stopwords')
 stop_words = set(stopwords.words('english'))
 
-# --- CONFIGURE GEMINI ---
-genai.configure(api_key="AIzaSyAhWPcSXF4R9WfkDT6nbVd_RH-JxbfvV2I")  # 👈 Replace with your actual key
+# --- LOAD FINBERT MODEL (No API Needed) ---
+@st.cache_resource
+def load_finbert():
+    tokenizer = AutoTokenizer.from_pretrained("ProsusAI/finbert")
+    model = AutoModelForSequenceClassification.from_pretrained("ProsusAI/finbert")
+    return tokenizer, model
+
+tokenizer, finbert_model = load_finbert()
 
 # --- CLEANING FUNCTION ---
 def clean_text(text):
@@ -27,16 +35,14 @@ def clean_text(text):
     words = [w for w in words if w not in stop_words]
     return ' '.join(words)
 
-# --- GEMINI AI SENTIMENT FUNCTION ---
+# --- FINBERT SENTIMENT FUNCTION ---
 def ai_sentiment_analysis(text):
-    prompt = (
-        f"Analyze the sentiment of this financial statement. "
-        f"Reply only with 'positive', 'negative', or 'neutral': {text}"
-    )
-    model = genai.GenerativeModel("gemini-1.5-flash-latest")
-    response = model.generate_content(prompt)
-    return response.text.strip().lower()
-
+    inputs = tokenizer(text, return_tensors="pt", truncation=True, padding=True)
+    outputs = finbert_model(**inputs)
+    scores = softmax(outputs.logits.detach().numpy()[0])
+    labels = ['negative', 'neutral', 'positive']
+    sentiment = labels[scores.argmax()]
+    return sentiment
 
 # =============================
 # 🌐 STREAMLIT APP
@@ -47,7 +53,7 @@ st.markdown("Analyze the sentiment of financial news, tweets, or stock updates."
 st.subheader("💬 Enter text for sentiment prediction:")
 user_input = st.text_area("Type a financial sentence...", "")
 
-# --- Dummy training example (to keep app running) ---
+# --- Dummy training example (for ML baseline) ---
 sample_data = pd.DataFrame({
     'tweet': [
         'Stock prices are rising steadily.',
@@ -76,11 +82,11 @@ if st.button("Analyze Sentiment"):
     else:
         st.warning("Please type something before analyzing.")
 
-# --- AI (GEMINI) SENTIMENT BUTTON ---
+# --- AI (FINBERT) SENTIMENT BUTTON ---
 if st.button("Analyze Sentiment (AI) 🤖"):
     if user_input.strip():
         sentiment = ai_sentiment_analysis(user_input)
-        color = "green" if "positive" in sentiment else "red" if "negative" in sentiment else "gray"
+        color = "green" if sentiment == "positive" else "red" if sentiment == "negative" else "gray"
         st.markdown(f"<h3 style='color:{color}'>AI Prediction: {sentiment.upper()} 🤖</h3>", unsafe_allow_html=True)
     else:
         st.warning("Please type something before analyzing.")
@@ -93,4 +99,4 @@ st.pyplot(fig)
 
 # --- FOOTER ---
 st.markdown("---")
-st.markdown("👨‍💻 Built by **Muhammed KP** — Powered by Streamlit & Gemini AI 🚀")
+st.markdown("👨‍💻 Built by **Muhammed KP** — Powered by Streamlit & FinBERT 🚀")
