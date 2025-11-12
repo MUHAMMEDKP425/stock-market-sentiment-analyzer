@@ -47,17 +47,28 @@ def finbert_sentiment(text):
     scores = softmax(outputs.logits.detach().numpy()[0])
     labels = ['negative', 'neutral', 'positive']
     
-    # Store all scores
+    # Get results
     results = {labels[i]: float(scores[i]) for i in range(len(labels))}
-    
-    # Pick the label with highest score
     sentiment = max(results, key=results.get)
-    confidence = results[sentiment] * 100  # convert to percentage
+    confidence = results[sentiment] * 100
     
-    # Display all scores in Streamlit
+    # --- Keyword-based correction ---
+    text_lower = text.lower()
+    positive_keywords = ["profit", "gain", "rise", "growth", "up", "increase", "jump", "record profits", "strong", "beat"]
+    negative_keywords = ["loss", "drop", "fall", "decline", "down", "weak", "miss", "cut", "slump"]
+    
+    # If FinBERT says 'neutral' or confidence is low, use keyword correction
+    if sentiment == "neutral" or confidence < 60:
+        if any(word in text_lower for word in positive_keywords):
+            sentiment = "positive"
+            confidence = 90
+        elif any(word in text_lower for word in negative_keywords):
+            sentiment = "negative"
+            confidence = 90
+
     st.write(f"**Confidence scores:** {results}")
-    
     return sentiment, confidence
+
 
 # =============================
 # 🌐 STREAMLIT APP UI
