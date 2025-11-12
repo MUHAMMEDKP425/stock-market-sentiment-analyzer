@@ -17,7 +17,7 @@ nltk.download('stopwords')
 stop_words = set(stopwords.words('english'))
 
 # --- CONFIGURE GEMINI ---
-genai.configure(api_key="AIzaSyDP07BuN7Mb77RYVjiTwBQUa_jSRcWmG_0")  # 👈 Replace with your actual key
+genai.configure(api_key="AIzaSyAhWPcSXF4R9WfkDT6nbVd_RH-JxbfvV2I")  # 👈 Replace with your actual key
 
 # --- CLEANING FUNCTION ---
 def clean_text(text):
