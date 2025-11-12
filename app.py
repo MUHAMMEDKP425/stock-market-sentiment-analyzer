@@ -52,7 +52,7 @@ def finbert_sentiment(text):
     sentiment = max(results, key=results.get)
     confidence = results[sentiment] * 100
 
-    # Keyword correction for better accuracy
+    # Keyword correction
     text_lower = text.lower()
     positive_keywords = [
         "profit", "profits", "gain", "rise", "growth", "up", "increase", "jump",
@@ -73,11 +73,11 @@ def finbert_sentiment(text):
     if any(phrase in text_lower for phrase in ["record profit", "record profits", "strong results", "beat expectations"]):
         sentiment, confidence = "positive", 95
 
-    # Display confidence data
+    # --- Display FinBERT confidence scores ---
     st.markdown("### 🔍 Confidence Scores")
     st.json(results)
 
-    # Plot chart
+    # --- Plot FinBERT Confidence Chart ONLY ---
     fig, ax = plt.subplots()
     colors = ["red", "gray", "green"]
     ax.bar(results.keys(), results.values(), color=colors)
@@ -89,7 +89,7 @@ def finbert_sentiment(text):
 
 
 # =============================
-# 🌐 STREAMLIT APP UI (WITH COLORED RESULT CARDS)
+# 🌐 STREAMLIT APP UI (NO EXTRA GRAPH)
 # =============================
 
 st.title("📈 Stock Market Sentiment Analyzer")
@@ -98,25 +98,20 @@ st.markdown("Analyze the sentiment of **financial news, tweets, or stock updates
 st.subheader("💬 Enter a financial sentence:")
 user_input = st.text_area("Type a financial sentence below:", "")
 
-# --- Prediction Variables ---
-trained_pred = None
-ai_pred = None
-ai_conf = None
-
-# --- Layout (Two Columns) ---
+# --- Layout: Two Columns ---
 col1, col2 = st.columns(2)
 
-# --- LEFT: Logistic Regression ---
+# --- LEFT: Logistic Regression Model ---
 with col1:
     st.markdown("### 🧠 Trained Model")
     if st.button("Analyze (Trained Model)", key="trained_model"):
         if user_input.strip():
             cleaned = clean_text(user_input)
             vector = tfidf.transform([cleaned])
-            trained_pred = model.predict(vector)[0]
+            prediction = model.predict(vector)[0]
 
-            color = "green" if trained_pred == "positive" else "red" if trained_pred == "negative" else "gray"
-            bg_color = "#d1ffd6" if trained_pred == "positive" else "#ffd6d6" if trained_pred == "negative" else "#f0f0f0"
+            color = "green" if prediction == "positive" else "red" if prediction == "negative" else "gray"
+            bg_color = "#d1ffd6" if prediction == "positive" else "#ffd6d6" if prediction == "negative" else "#f0f0f0"
 
             st.markdown(
                 f"""
@@ -126,7 +121,7 @@ with col1:
                     border-radius:10px;
                     text-align:center;
                     box-shadow:0 0 8px rgba(0,0,0,0.2);">
-                    <h4 style="color:{color};">Predicted Sentiment: {trained_pred.upper()} 🎯</h4>
+                    <h4 style="color:{color};">Predicted Sentiment: {prediction.upper()} 🎯</h4>
                 </div>
                 """,
                 unsafe_allow_html=True
@@ -139,10 +134,10 @@ with col2:
     st.markdown("### 🤖 FinBERT AI")
     if st.button("Analyze (AI FinBERT)", key="ai_model"):
         if user_input.strip():
-            ai_pred, ai_conf = finbert_sentiment(user_input)
+            sentiment, confidence = finbert_sentiment(user_input)
 
-            color = "green" if ai_pred == "positive" else "red" if ai_pred == "negative" else "gray"
-            bg_color = "#d1ffd6" if ai_pred == "positive" else "#ffd6d6" if ai_pred == "negative" else "#f0f0f0"
+            color = "green" if sentiment == "positive" else "red" if sentiment == "negative" else "gray"
+            bg_color = "#d1ffd6" if sentiment == "positive" else "#ffd6d6" if sentiment == "negative" else "#f0f0f0"
 
             st.markdown(
                 f"""
@@ -152,74 +147,14 @@ with col2:
                     border-radius:10px;
                     text-align:center;
                     box-shadow:0 0 8px rgba(0,0,0,0.2);">
-                    <h4 style="color:{color};">AI Prediction: {ai_pred.upper()} 🤖</h4>
-                    <p><b>Confidence:</b> {ai_conf:.1f}%</p>
+                    <h4 style="color:{color};">AI Prediction: {sentiment.upper()} 🤖</h4>
+                    <p><b>Confidence:</b> {confidence:.1f}%</p>
                 </div>
                 """,
                 unsafe_allow_html=True
             )
         else:
             st.warning("Please type something before analyzing.")
-
-# =============================
-# 🧩 COMPARISON SUMMARY CARD
-# =============================
-
-if trained_pred or ai_pred:
-    st.markdown("---")
-    st.subheader("🧩 Overall Result Summary")
-
-    if trained_pred and ai_pred:
-        if trained_pred == ai_pred:
-            bg_color = "#d1ffd6" if ai_pred == "positive" else "#ffd6d6" if ai_pred == "negative" else "#f0f0f0"
-            st.markdown(
-                f"""
-                <div style="
-                    background-color:{bg_color};
-                    padding:20px;
-                    border-radius:10px;
-                    text-align:center;
-                    font-size:18px;
-                    font-weight:bold;
-                    box-shadow:0 0 8px rgba(0,0,0,0.2);">
-                    ✅ Both models agree: <span style="color:black;">{ai_pred.upper()}</span> sentiment!<br>
-                    (FinBERT Confidence: {ai_conf:.1f}%)
-                </div>
-                """,
-                unsafe_allow_html=True
-            )
-        else:
-            st.markdown(
-                f"""
-                <div style="
-                    background-color:#fff3cd;
-                    padding:20px;
-                    border-radius:10px;
-                    text-align:center;
-                    font-size:18px;
-                    font-weight:bold;
-                    box-shadow:0 0 8px rgba(0,0,0,0.2);">
-                    ⚠️ The models disagree.<br>
-                    Trained Model says: <b>{trained_pred.upper()}</b><br>
-                    FinBERT says: <b>{ai_pred.upper()}</b> (Confidence: {ai_conf:.1f}%)
-                </div>
-                """,
-                unsafe_allow_html=True
-            )
-
-# =============================
-# 📊 EXAMPLE CHART
-# =============================
-st.markdown("---")
-st.subheader("📊 Example Financial Sentiment Distribution")
-sample_data = pd.DataFrame({
-    'label': ['positive', 'negative', 'neutral'],
-    'count': [45, 35, 20]
-})
-fig, ax = plt.subplots()
-ax.bar(sample_data['label'], sample_data['count'], color=['green', 'red', 'gray'])
-ax.set_title("Example Financial Sentiment Distribution")
-st.pyplot(fig)
 
 # --- Footer ---
 st.markdown("---")
